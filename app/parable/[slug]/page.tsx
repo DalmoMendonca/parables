@@ -8,7 +8,7 @@ import { MessageCircle, Lock, BookOpen, ThumbsUp, ThumbsDown, UserCircle, Users,
 import { parables } from '@/data/parables';
 import { supabase } from '@/lib/supabase-client';
 import { User } from '@supabase/supabase-js';
-import { ColorAltitude, UserScores } from '@/lib/database.types';
+import type { Database, ColorAltitude, UserScores } from '@/lib/database.types';
 
 interface Note {
   id: string;
@@ -44,6 +44,17 @@ const altitudeInfo = {
   turquoise: { name: 'Holistic', color: 'var(--turquoise)' }
 };
 
+const altitudeEntries = Object.entries(altitudeInfo) as Array<[ColorAltitude, { name: string; color: string }]>;
+
+type UsersInsert = Database['public']['Tables']['users']['Insert'];
+type UsersUpdate = Database['public']['Tables']['users']['Update'];
+type UserAltitudeVoteRow = Database['public']['Tables']['user_altitude_votes']['Row'];
+type UserAltitudeVoteInsert = Database['public']['Tables']['user_altitude_votes']['Insert'];
+type NoteVoteRow = Database['public']['Tables']['note_votes']['Row'];
+type ParableNoteRow = Database['public']['Tables']['parable_notes']['Row'];
+type UserParableNoteInsert = Database['public']['Tables']['user_parable_notes']['Insert'];
+type UserParableVoteInsert = Database['public']['Tables']['user_parable_votes']['Insert'];
+
 export default function ParablePage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -78,13 +89,14 @@ export default function ParablePage() {
     }
 
     const scores: UserScores = { ...DEFAULT_USER_SCORES };
+    const votes: Pick<UserAltitudeVoteRow, 'altitude' | 'vote_type'>[] = allVotes ?? [];
 
-    allVotes?.forEach((vote) => {
+    votes.forEach((vote) => {
       if (!vote?.vote_type) {
         return;
       }
 
-      const altitudeKey = vote.altitude as ColorAltitude;
+      const altitudeKey: ColorAltitude = vote.altitude;
       const current = scores[altitudeKey] ?? 0;
       scores[altitudeKey] = current + (vote.vote_type === 'upvote' ? 1 : -1);
     });
@@ -120,7 +132,7 @@ export default function ParablePage() {
       return;
     }
 
-    const newUser = {
+    const newUser: UsersInsert = {
       id: sessionUser.id,
       email: sessionUser.email,
       preferred_bible_version: 'ESV',
@@ -154,7 +166,8 @@ export default function ParablePage() {
       return;
     }
 
-    const mappedNotes: Note[] = (notesData ?? []).map((note) => ({
+    const noteRows: Pick<ParableNoteRow, 'id' | 'altitude' | 'content' | 'upvotes' | 'downvotes'>[] = notesData ?? [];
+    const mappedNotes: Note[] = noteRows.map((note) => ({
       id: note.id,
       altitude: note.altitude as ColorAltitude,
       content: note.content,
@@ -195,15 +208,17 @@ export default function ParablePage() {
       return;
     }
 
+    const noteVotes: Pick<NoteVoteRow, 'note_id' | 'vote_type'>[] = votesData ?? [];
+    const altitudeVotes: Pick<UserAltitudeVoteRow, 'altitude' | 'vote_type'>[] = altitudeVotesData ?? [];
     const votes: Record<string, 'upvote' | 'downvote'> = {};
 
-    votesData?.forEach((vote) => {
+    noteVotes.forEach((vote) => {
       if (vote?.note_id && vote.vote_type) {
         votes[vote.note_id] = vote.vote_type;
       }
     });
 
-    altitudeVotesData?.forEach((vote) => {
+    altitudeVotes.forEach((vote) => {
       if (vote?.altitude && vote.vote_type) {
         votes[vote.altitude] = vote.vote_type;
       }
@@ -349,16 +364,15 @@ export default function ParablePage() {
     setNoteStatus('saving');
 
     try {
+      const notePayload: UserParableNoteInsert = {
+        user_id: user.id,
+        parable_id: parable.id,
+        content: personalNote,
+      };
+
       const { data, error } = await supabase
         .from('user_parable_notes')
-        .upsert(
-          {
-            user_id: user.id,
-            parable_id: parable.id,
-            content: personalNote,
-          },
-          { onConflict: 'user_id,parable_id' }
-        )
+        .upsert(notePayload, { onConflict: 'user_id,parable_id' })
         .select('content, updated_at')
         .single();
 
@@ -376,10 +390,10 @@ export default function ParablePage() {
     }
   };
 
-  const handleVote = async (noteId: string, voteType: 'upvote' | 'downvote') => {
+  const handleVote = async (voteKey: string, altitudeKey: ColorAltitude, voteType: 'upvote' | 'downvote') => {
     if (!user || !parable) return;
 
-    console.log(`Voting ${voteType} on ${noteId}`);
+    console.log(`Voting ${voteType} on ${voteKey}`);
 
     // Ensure user exists
     const userExists = await ensureUserExists(user.id, user.email!);
@@ -388,8 +402,7 @@ export default function ParablePage() {
       return;
     }
 
-    const altitude = noteId;
-    const currentVote = userVotes[noteId];
+    const currentVote = userVotes[voteKey];
     let newVoteType: 'upvote' | 'downvote' | null = voteType;
 
     // Determine the new vote state
@@ -412,23 +425,26 @@ export default function ParablePage() {
           .delete()
           .eq('user_id', user.id)
           .eq('parable_id', parable.id)
-          .eq('altitude', altitude);
+          .eq('altitude', altitudeKey);
 
         if (deleteError) {
           console.error('Error deleting altitude vote:', deleteError);
           return;
         }
-        console.log(`Removed vote for ${altitude}`);
+        console.log(`Removed vote for ${altitudeKey}`);
       } else {
         // Store or update the vote
+        const voteTypeToSave = newVoteType as 'upvote' | 'downvote';
+        const altitudeVotePayload: UserAltitudeVoteInsert = {
+          user_id: user.id,
+          parable_id: parable.id,
+          altitude: altitudeKey,
+          vote_type: voteTypeToSave,
+        };
+
         const { error: upsertError } = await supabase
           .from('user_altitude_votes')
-          .upsert({
-            user_id: user.id,
-            parable_id: parable.id,
-            altitude: altitude,
-            vote_type: newVoteType
-          }, {
+          .upsert(altitudeVotePayload, {
             onConflict: 'user_id,parable_id,altitude'
           });
 
@@ -436,15 +452,15 @@ export default function ParablePage() {
           console.error('Error storing altitude vote:', upsertError);
           return;
         }
-        console.log(`Stored ${newVoteType} vote for ${altitude}`);
+        console.log(`Stored ${newVoteType} vote for ${altitudeKey}`);
       }
 
       // Update local vote state
       const newVotes = { ...userVotes };
       if (newVoteType === null) {
-        delete newVotes[noteId];
+        delete newVotes[voteKey];
       } else {
-        newVotes[noteId] = newVoteType;
+        newVotes[voteKey] = newVoteType;
       }
       setUserVotes(newVotes);
 
@@ -452,15 +468,15 @@ export default function ParablePage() {
       await calculateAndSetScores(user.id);
 
       // Mark parable as voted
+      const parableVotePayload: UserParableVoteInsert = {
+        user_id: user.id,
+        parable_id: parable.id,
+        has_voted: true
+      };
+
       const { error: parableError } = await supabase
         .from('user_parable_votes')
-        .upsert({
-          user_id: user.id,
-          parable_id: parable.id,
-          has_voted: true
-        }, {
-          onConflict: 'user_id,parable_id'
-        });
+        .upsert(parableVotePayload, { onConflict: 'user_id,parable_id' });
 
       if (parableError) {
         console.error('Error marking parable as voted:', parableError);
@@ -495,7 +511,7 @@ export default function ParablePage() {
 
     console.log('Creating user record for:', userEmail);
 
-    const newUserPayload = {
+    const newUserPayload: UsersInsert = {
       id: userId,
       email: userEmail,
       preferred_bible_version: 'ESV',
@@ -534,9 +550,10 @@ export default function ParablePage() {
       .eq('has_voted', true);
 
     if ((userParableVotes?.length ?? 0) >= 37) {
+      const updatePayload: UsersUpdate = { comments_unlocked: true };
       const { error: updateError } = await supabase
         .from('users')
-        .update({ comments_unlocked: true })
+        .update(updatePayload)
         .eq('id', user.id);
 
       if (updateError) {
@@ -708,22 +725,22 @@ export default function ParablePage() {
             </div>
 
             <div className="space-y-6">
-              {Object.entries(altitudeInfo).map(([altitude, info]) => {
-                const note = notes.find(n => n.altitude === altitude);
-                const voteKey = note?.id || altitude;
+              {altitudeEntries.map(([altitudeKey, info]) => {
+                const note = notes.find(n => n.altitude === altitudeKey);
+                const voteKey = note?.id || altitudeKey;
                 const userVote = voteKey ? userVotes[voteKey] : undefined;
-                const parableNote = parable.notes?.[altitude as keyof typeof parable.notes];
+                const parableNote = parable.notes?.[altitudeKey as keyof typeof parable.notes];
                 const content = note?.content || parableNote || 'Loading interpretation...';
                 const isUpvote = userVote === 'upvote';
                 const isDownvote = userVote === 'downvote';
 
                 return (
                   <motion.div
-                    key={altitude}
+                    key={altitudeKey}
                     className="note-card group"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * Object.keys(altitudeInfo).indexOf(altitude) }}
+                    transition={{ delay: 0.1 * altitudeEntries.findIndex(([key]) => key === altitudeKey) }}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <span
@@ -737,7 +754,7 @@ export default function ParablePage() {
                         <div className="flex items-center">
                           <div className="grid grid-cols-2 min-w-[100px] sm:min-w-[140px] overflow-hidden rounded-full border border-gray-300 shadow-sm">
                             <button
-                              onClick={() => handleVote(voteKey, 'upvote')}
+                              onClick={() => handleVote(voteKey, altitudeKey, 'upvote')}
                               aria-pressed={isUpvote}
                               aria-label="Agree"
                               className={`border flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs font-semibold transition-colors ${isUpvote ? 'text-white' : 'text-gray-600 hover:bg-green-50'}`}
@@ -747,7 +764,7 @@ export default function ParablePage() {
                               <span className="hidden sm:inline">Agree</span>
                             </button>
                             <button
-                              onClick={() => handleVote(voteKey, 'downvote')}
+                              onClick={() => handleVote(voteKey, altitudeKey, 'downvote')}
                               aria-pressed={isDownvote}
                               aria-label="Disagree"
                               className={`border flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs font-semibold transition-colors ${isDownvote ? 'text-white' : 'text-gray-600 hover:bg-red-50'}`}

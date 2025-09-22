@@ -1,13 +1,13 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { User, Settings, BookOpen, Trophy, Target, Sparkles, Star, ThumbsUp, ThumbsDown, ArrowLeft, LogOut, Users } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase-client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { UserScores } from '@/lib/database.types';
+import type { Database, UserScores } from '@/lib/database.types';
 
 interface ProfileIconProps {
     scores: UserScores;
@@ -113,6 +113,16 @@ const altitudeInfo = {
     }
 };
 
+type UsersInsert = Database['public']['Tables']['users']['Insert'];
+type UserAltitudeVote = Pick<Database['public']['Tables']['user_altitude_votes']['Row'], 'altitude' | 'vote_type' | 'parable_id'>;
+
+function getFirstName(fullNameOrEmail: string): string {
+    if (fullNameOrEmail.includes('@')) {
+        return fullNameOrEmail.split('@')[0];
+    }
+    return fullNameOrEmail.split(' ')[0] || 'User';
+}
+
 export default function ProfilePage() {
     const [user, setUser] = useState<SupabaseUser | null>(null);
     const [userScores, setUserScores] = useState<UserScores>({
@@ -126,11 +136,48 @@ export default function ProfilePage() {
     const [totalVotes, setTotalVotes] = useState(0);
     const [centerOfGravity, setCenterOfGravity] = useState<keyof typeof altitudeInfo>('magenta');
 
-    useEffect(() => {
-        loadUserData();
-    }, []);
+    const calculateScoresFromVotes = useCallback(async (userId: string) => {
+        // Get all votes for this user across all parables
+        const { data: allVotes } = await supabase
+            .from('user_altitude_votes')
+            .select('altitude, vote_type, parable_id')
+            .eq('user_id', userId);
 
-    const loadUserData = async () => {
+        const scores: UserScores = {
+            magenta: 0, red: 0, amber: 0, orange: 0, green: 0, teal: 0, turquoise: 0
+        };
+
+        const uniqueParables = new Set<string>();
+        let totalVoteCount = 0;
+
+        if (allVotes) {
+            allVotes.forEach((vote: UserAltitudeVote) => {
+                const voteValue = vote.vote_type === 'upvote' ? 1 : -1;
+                scores[vote.altitude] += voteValue;
+                uniqueParables.add(vote.parable_id);
+                totalVoteCount++;
+            });
+        }
+
+        // Calculate center of gravity (highest scoring altitude)
+        const highestScore = Math.max(...Object.values(scores));
+        let centerAltitude: keyof typeof altitudeInfo = 'magenta';
+
+        for (const [altitude, score] of Object.entries(scores)) {
+            if (score === highestScore) {
+                centerAltitude = altitude as keyof typeof altitudeInfo;
+                break;
+            }
+        }
+
+        setUserScores(scores);
+        setParablesStudied(uniqueParables.size);
+        setTotalVotes(totalVoteCount);
+        setCenterOfGravity(centerAltitude);
+        console.log('Profile: Calculated scores from votes:', scores);
+    }, [setCenterOfGravity, setParablesStudied, setTotalVotes, setUserScores]);
+
+    const loadUserData = useCallback(async () => {
         setLoading(true);
 
         try {
@@ -149,52 +196,69 @@ export default function ProfilePage() {
                 return;
             }
 
-            const [userResponse] = await Promise.all([
-                supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .maybeSingle(),
-                calculateScoresFromVotes(currentUser.id),
-            ]);
-
-            const { data: userData, error } = userResponse;
+            const { data: userRecord, error } = await supabase
+                .from('users')
+                .select('id, email, preferred_bible_version, display_name, comments_unlocked')
+                .eq('id', currentUser.id)
+                .maybeSingle();
 
             if (error) {
                 console.error('Error loading user record:', error);
             }
 
-            if (userData) {
-                const userRecord = userData as any;
+            if (userRecord) {
+                const fallbackName = getFirstName(currentUser.user_metadata?.full_name || currentUser.email || '');
                 setPreferredVersion(userRecord.preferred_bible_version || 'ESV');
-                setCommentsUnlocked(userRecord.comments_unlocked || false);
-                setDisplayName(userRecord.display_name || getFirstName(currentUser.user_metadata?.full_name || currentUser.email || ''));
+                setCommentsUnlocked(userRecord.comments_unlocked ?? false);
+                setDisplayName(userRecord.display_name || fallbackName);
             } else if (!error) {
-                const firstName = getFirstName(currentUser.user_metadata?.full_name || currentUser.email || '');
+                const fallbackName = getFirstName(currentUser.user_metadata?.full_name || currentUser.email || '');
+
+                if (!currentUser.email) {
+                    console.error('Authenticated user missing email address');
+                    return;
+                }
+
+                const insertPayload: UsersInsert = {
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    preferred_bible_version: 'ESV',
+                    display_name: fallbackName,
+                    comments_unlocked: false,
+                };
+
                 const { error: insertError } = await supabase
                     .from('users')
-                    .insert({
-                        id: currentUser.id,
-                        email: currentUser.email!,
-                        preferred_bible_version: 'ESV',
-                        display_name: firstName
-                    } as any);
+                    .insert(insertPayload);
 
                 if (insertError) {
                     console.error('Error creating user record:', insertError);
                 } else {
-                    setDisplayName(firstName);
+                    setDisplayName(fallbackName);
                     setPreferredVersion('ESV');
                     setCommentsUnlocked(false);
                 }
             }
+
+            await calculateScoresFromVotes(currentUser.id);
         } catch (error) {
             console.error('Unexpected error loading profile data:', error);
             setUser(null);
         } finally {
             setLoading(false);
         }
-    };
+    }, [
+        calculateScoresFromVotes,
+        setCommentsUnlocked,
+        setDisplayName,
+        setLoading,
+        setPreferredVersion,
+        setUser,
+    ]);
+
+    useEffect(() => {
+        void loadUserData();
+    }, [loadUserData]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -210,56 +274,6 @@ export default function ProfilePage() {
                 redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(`${window.location.origin}/profile`)}`
             }
         });
-    };
-
-    const getFirstName = (fullNameOrEmail: string): string => {
-        if (fullNameOrEmail.includes('@')) {
-            // It's an email, extract the part before @
-            return fullNameOrEmail.split('@')[0];
-        }
-        // It's a full name, extract first name
-        return fullNameOrEmail.split(' ')[0] || 'User';
-    };
-
-    const calculateScoresFromVotes = async (userId: string) => {
-        // Get all votes for this user across all parables
-        const { data: allVotes } = await supabase
-            .from('user_altitude_votes')
-            .select('altitude, vote_type, parable_id')
-            .eq('user_id', userId);
-
-        const scores: UserScores = {
-            magenta: 0, red: 0, amber: 0, orange: 0, green: 0, teal: 0, turquoise: 0
-        };
-
-        let uniqueParables = new Set<string>();
-        let totalVoteCount = 0;
-
-        if (allVotes) {
-            allVotes.forEach((vote: any) => {
-                const voteValue = vote.vote_type === 'upvote' ? 1 : -1;
-                scores[vote.altitude as keyof UserScores] += voteValue;
-                uniqueParables.add(vote.parable_id);
-                totalVoteCount++;
-            });
-        }
-
-        // Calculate center of gravity (highest scoring altitude)
-        let highestScore = Math.max(...Object.values(scores));
-        let centerAltitude: keyof typeof altitudeInfo = 'magenta';
-
-        for (const [altitude, score] of Object.entries(scores)) {
-            if (score === highestScore) {
-                centerAltitude = altitude as keyof typeof altitudeInfo;
-                break;
-            }
-        }
-
-        setUserScores(scores);
-        setParablesStudied(uniqueParables.size);
-        setTotalVotes(totalVoteCount);
-        setCenterOfGravity(centerAltitude);
-        console.log('Profile: Calculated scores from votes:', scores);
     };
 
     const updateDisplayName = async (newName: string) => {

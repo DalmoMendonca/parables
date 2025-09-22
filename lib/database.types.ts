@@ -45,6 +45,7 @@
           turquoise_score?: number;
           comments_unlocked?: boolean;
         };
+        Relationships: [];
       };
       parable_notes: {
         Row: {
@@ -71,6 +72,7 @@
           upvotes?: number;
           downvotes?: number;
         };
+        Relationships: [];
       };
       note_votes: {
         Row: {
@@ -86,8 +88,9 @@
           vote_type: 'upvote' | 'downvote';
         };
         Update: {
-          vote_type: 'upvote' | 'downvote';
+          vote_type?: 'upvote' | 'downvote';
         };
+        Relationships: [];
       };
       comments: {
         Row: {
@@ -95,7 +98,7 @@
           parable_id: string;
           user_id: string;
           content: string;
-          user_scores_snapshot: string; // JSON string of color scores at time of posting
+          user_scores_snapshot: string;
           upvotes: number;
           created_at: string;
         };
@@ -110,6 +113,7 @@
           content?: string;
           upvotes?: number;
         };
+        Relationships: [];
       };
       comment_votes: {
         Row: {
@@ -123,6 +127,7 @@
           comment_id: string;
         };
         Update: never;
+        Relationships: [];
       };
       user_parable_votes: {
         Row: {
@@ -138,8 +143,9 @@
           has_voted?: boolean;
         };
         Update: {
-          has_voted: boolean;
+          has_voted?: boolean;
         };
+        Relationships: [];
       };
       user_altitude_votes: {
         Row: {
@@ -160,6 +166,7 @@
           altitude?: 'magenta' | 'red' | 'amber' | 'orange' | 'green' | 'teal' | 'turquoise';
           vote_type?: 'upvote' | 'downvote';
         };
+        Relationships: [];
       };
       user_parable_notes: {
         Row: {
@@ -178,8 +185,12 @@
         Update: {
           content?: string;
         };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
   };
 }
 
@@ -194,6 +205,4 @@ export interface UserScores {
   teal: number;
   turquoise: number;
 }
-
-
 
