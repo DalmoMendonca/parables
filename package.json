@@ -25,6 +25,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "minify-sync": "^2.5.0",
     "@netlify/plugin-nextjs": "^4.28.4",
     "@types/node": "^20.8.0",
     "@types/react": "^18.2.0",
