@@ -1,31 +1,55 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { parables } from '@/data/parables';
+
+const altitudeOrder = ['magenta', 'red', 'amber', 'orange', 'green', 'teal', 'turquoise'] as const;
+type AltitudeKey = typeof altitudeOrder[number];
 
 export default function AdminPage() {
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState<string[]>([]);
   const [selectedParableIds, setSelectedParableIds] = useState<string[]>([]);
+  const [currentStatus, setCurrentStatus] = useState('');
 
   const generateNotesForParable = async (parableId: string, title: string) => {
-    try {
-      const response = await fetch('/api/generate-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parableId }),
-      });
+    const results: string[] = [];
+    
+    for (const altitude of altitudeOrder) {
+      const status = `[${altitude.toUpperCase()}] Generating note for ${title}...`;
+      setCurrentStatus(status);
+      
+      try {
+        const response = await fetch('/api/generate-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parableId, altitude }),
+        });
 
-      if (response.ok) {
         const result = await response.json();
-        setResults(prev => [...prev, `[OK] Generated ${result.notes.length} notes for ${title}`]);
-      } else {
-        const error = await response.text();
-        setResults(prev => [...prev, `[ERROR] Failed to generate notes for ${title}: ${error}`]);
+        
+        if (response.ok) {
+          results.push(`[OK] Generated ${altitude} note for ${title}`);
+          setResults(prev => [...prev, results[results.length - 1]]);
+        } else {
+          const errorMsg = result.error || response.statusText;
+          results.push(`[ERROR] Failed to generate ${altitude} note for ${title}: ${errorMsg}`);
+          setResults(prev => [...prev, results[results.length - 1]]);
+          // Continue with next altitude even if one fails
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        results.push(`[ERROR] Exception while generating ${altitude} note for ${title}: ${errorMsg}`);
+        setResults(prev => [...prev, results[results.length - 1]]);
+        // Continue with next altitude even if one fails
       }
-    } catch (error) {
-      setResults(prev => [...prev, `[ERROR] Exception while generating notes for ${title}: ${String(error)}`]);
+      
+      // Add a small delay between API calls to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
+    
+    setCurrentStatus('');
+    return results;
   };
 
   const toggleParableSelection = (id: string) => {
@@ -49,20 +73,51 @@ export default function AdminPage() {
 
     setGenerating(true);
     setResults([]);
+    setCurrentStatus('Starting...');
+    
     const selectedParables = parables.filter(parable => selectedParableIds.includes(parable.id));
+    let successCount = 0;
+    let errorCount = 0;
 
-    for (let index = 0; index < selectedParables.length; index += 1) {
-      const parable = selectedParables[index];
-      setResults(prev => [...prev, `[RUNNING] Regenerating notes for ${parable.title}`]);
-      await generateNotesForParable(parable.id, parable.title);
-
-      if (index < selectedParables.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      for (let index = 0; index < selectedParables.length; index++) {
+        const parable = selectedParables[index];
+        const progress = `[${index + 1}/${selectedParables.length}]`;
+        setCurrentStatus(`${progress} Processing ${parable.title}...`);
+        
+        setResults(prev => [...prev, `${progress} Regenerating notes for ${parable.title}`]);
+        
+        try {
+          const results = await generateNotesForParable(parable.id, parable.title);
+          const success = results.every(r => r.startsWith('[OK]'));
+          
+          if (success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+          
+          // Add a longer delay between parables
+          if (index < selectedParables.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        } catch (error) {
+          errorCount++;
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          setResults(prev => [...prev, `[ERROR] Failed to process ${parable.title}: ${errorMsg}`]);
+          
+          // Continue with next parable even if one fails
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
+      
+      const completionMessage = `[DONE] Finished processing ${selectedParables.length} parables. ` +
+        `Success: ${successCount}, Errors: ${errorCount}`;
+      setResults(prev => [...prev, completionMessage]);
+    } finally {
+      setGenerating(false);
+      setCurrentStatus('');
     }
-
-    setGenerating(false);
-    setResults(prev => [...prev, '[DONE] Finished regenerating selected parables.']);
   };
 
   const isSelected = (id: string) => selectedParableIds.includes(id);
@@ -141,7 +196,7 @@ export default function AdminPage() {
               generating || selectedParableIds.length === 0 ? 'opacity-60 cursor-not-allowed' : ''
             }`}
           >
-            {generating ? 'Regenerating Notes...' : 'Regenerate Notes'}
+            {generating ? 'Generating...' : `Regenerate Notes (${selectedParableIds.length} selected)`}
           </button>
         </div>
 
@@ -149,11 +204,34 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-4">Results</h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {results.map((result, index) => (
-                <div key={`${result}-${index}`} className="text-sm font-mono p-2 bg-gray-50 rounded">
-                  {result}
+              {currentStatus && (
+                <div className="text-sm font-mono p-2 bg-blue-50 border-l-4 border-blue-500 mb-4">
+                  {currentStatus}
                 </div>
-              ))}
+              )}
+              {results.map((result, index) => {
+                const isError = result.includes('[ERROR]');
+                const isSuccess = result.includes('[OK]');
+                let bgColor = 'bg-gray-50';
+                let borderColor = 'border-gray-200';
+                
+                if (isError) {
+                  bgColor = 'bg-red-50';
+                  borderColor = 'border-red-200';
+                } else if (isSuccess) {
+                  bgColor = 'bg-green-50';
+                  borderColor = 'border-green-200';
+                }
+                
+                return (
+                  <div 
+                    key={`${result}-${index}`} 
+                    className={`text-sm font-mono p-2 ${bgColor} border-l-4 ${borderColor} rounded`}
+                  >
+                    {result}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

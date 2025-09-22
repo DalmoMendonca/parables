@@ -1,0 +1,36 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+  functions = ".next/serverless/functions"
+
+[functions]
+  # Set the default timeout to 10 seconds (maximum for standard plan)
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js", "openai"]
+
+# Increase the function timeout to the maximum allowed (10 seconds for standard plan)
+[[functions]]
+  function = "api/generate-notes"
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js", "openai"]
+  max_duration = 10  # Maximum allowed for standard plan (in seconds)
+
+# Environment variables (these should be set in Netlify UI)
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "1"
+  NODE_VERSION = "18"
+
+# Redirects for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
