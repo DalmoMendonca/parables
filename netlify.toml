@@ -1,30 +1,41 @@
 [build]
   command = "npm run build"
-  publish = ".next/static"
-  functions = ".next/serverless/functions"
+  publish = ".next"
+  functions = ".next/functions"
 
-[functions]
-  directory = ".next/serverless/functions"
-  node_bundler = "esbuild"
-  external_node_modules = ["@supabase/supabase-js", "openai"]
-  included_files = ["node_modules/.pnpm/**"]
-
-# Environment variables (these should be set in Netlify UI)
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_VERSION = "18"
 
+# Required for Next.js
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js", "openai"]
+  included_files = ["node_modules/.pnpm/**"]
+
+# Cache configuration for faster builds
+[[plugins]]
+  package = "@netlify/plugin-nextjs@5.13.3"
+  [plugins.inputs]
+    buildCommand = "npm run build"
+    functions = ".next/functions"
+    publish = ".next"
+
 # Redirects for SPA
-[redirects]
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
 # Headers for security
-[headers]
+[[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Enable build caching
+[build.caching]
+  enabled = true
