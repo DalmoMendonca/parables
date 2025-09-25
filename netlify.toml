@@ -1,14 +1,13 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = ".next/static"
   functions = ".next/serverless/functions"
 
 [functions]
-  function = "api/generate-notes"
+  directory = ".next/serverless/functions"
   node_bundler = "esbuild"
   external_node_modules = ["@supabase/supabase-js", "openai"]
   max_duration = 30  # Increased to 30 seconds to match industry standard for AI API calls
-  # Default settings for all functions
   included_files = ["node_modules/.pnpm/**"]
 
 # Environment variables (these should be set in Netlify UI)
