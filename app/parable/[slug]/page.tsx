@@ -57,7 +57,7 @@ const altitudeEntries = Object.entries(altitudeInfo) as Array<[ColorAltitude, { 
 type UsersInsert = Database['public']['Tables']['users']['Insert'];
 type UsersUpdate = Database['public']['Tables']['users']['Update'];
 type UserAltitudeVoteRow = Database['public']['Tables']['user_altitude_votes']['Row'];
-// UserAltitudeVoteInsert type is defined but not used in this file
+type UserAltitudeVoteInsert = Database['public']['Tables']['user_altitude_votes']['Insert'];
 type NoteVoteRow = Database['public']['Tables']['note_votes']['Row'];
 type ParableNoteRow = Database['public']['Tables']['parable_notes']['Row'];
 type UserParableNoteInsert = Database['public']['Tables']['user_parable_notes']['Insert'];
@@ -78,18 +78,8 @@ declare module '@supabase/supabase-js' {
     public: {
       Functions: {
         handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
-          data: {
-            success: boolean;
-            message?: string;
-            user_scores?: UserScores;
-            note?: NoteUpdateResult;
-          };
-          error: {
-            message: string;
-            details?: string;
-            hint?: string;
-            code?: string;
-          } | null;
+          data: any;
+          error: any;
         }>;
       };
     };
@@ -414,7 +404,7 @@ export default function ParablePage() {
       }
       
       // Update local state
-      setNotes(notes.map(note => 
+      setNotes(notes.map((note: Note) => 
         note.id === noteId 
           ? { ...note, content: editedNoteContent } 
           : note
@@ -508,12 +498,7 @@ export default function ParablePage() {
       }
 
       // Start a transaction to ensure both votes are in sync
-      const { error: transactionError } = await (supabase.rpc as unknown as {
-        handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
-          data: { success: boolean; message?: string } | null;
-          error: { message: string } | null;
-        }>;
-      }).handle_vote_transaction({
+      const { data: transactionData, error: transactionError } = await (supabase.rpc as any)('handle_vote_transaction', {
         p_user_id: user.id,
         p_parable_id: parable.id,
         p_altitude: altitudeKey,

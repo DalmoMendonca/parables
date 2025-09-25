@@ -1,44 +1,29 @@
 [build]
   command = "npm run build"
-  publish = "out"
-  functions = "functions"  # If you're using API routes
-
-[build.environment]
-  NODE_VERSION = "18"
-  NEXT_TELEMETRY_DISABLED = "1"
-
-# Required for Next.js static exports
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Redirects for SPA - using array syntax
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  publish = ".next"
+  functions = ".next/serverless/functions"
 
 [functions]
-  directory = "app/api"  # Directory where your API routes are located
+  function = "api/generate-notes"
   node_bundler = "esbuild"
   external_node_modules = ["@supabase/supabase-js", "openai"]
-  included_files = ["node_modules/.pnpm/**"]
-
-[functions.generate-notes]
   max_duration = 30  # Increased to 30 seconds to match industry standard for AI API calls
+  # Default settings for all functions
+  included_files = ["node_modules/.pnpm/**"]
 
 # Environment variables (these should be set in Netlify UI)
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_VERSION = "18"
 
-# Redirects for SPA - using array syntax
-[[redirects]]
+# Redirects for SPA
+[redirects]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Headers for security - using array syntax
-[[headers]]
+# Headers for security
+[headers]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
