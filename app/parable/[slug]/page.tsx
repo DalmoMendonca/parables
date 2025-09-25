@@ -57,7 +57,7 @@ const altitudeEntries = Object.entries(altitudeInfo) as Array<[ColorAltitude, { 
 type UsersInsert = Database['public']['Tables']['users']['Insert'];
 type UsersUpdate = Database['public']['Tables']['users']['Update'];
 type UserAltitudeVoteRow = Database['public']['Tables']['user_altitude_votes']['Row'];
-type UserAltitudeVoteInsert = Database['public']['Tables']['user_altitude_votes']['Insert'];
+// UserAltitudeVoteInsert type is defined but not used in this file
 type NoteVoteRow = Database['public']['Tables']['note_votes']['Row'];
 type ParableNoteRow = Database['public']['Tables']['parable_notes']['Row'];
 type UserParableNoteInsert = Database['public']['Tables']['user_parable_notes']['Insert'];
@@ -508,7 +508,12 @@ export default function ParablePage() {
       }
 
       // Start a transaction to ensure both votes are in sync
-      const { data: transactionData, error: transactionError } = await (supabase.rpc as any)('handle_vote_transaction', {
+      const { error: transactionError } = await (supabase.rpc as unknown as {
+        handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
+          data: { success: boolean; message?: string } | null;
+          error: { message: string } | null;
+        }>;
+      }).handle_vote_transaction({
         p_user_id: user.id,
         p_parable_id: parable.id,
         p_altitude: altitudeKey,

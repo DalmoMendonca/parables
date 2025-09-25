@@ -590,7 +590,7 @@ async function requestOpenAIContent({
             attempt,
             isFallback: true
           });
-        } catch (error) {
+        } catch {
           // If that fails, try with a simplified prompt
           console.log(`[${requestId}] Original prompt failed, trying simplified prompt...`);
           const simplifiedPrompt = `Write a 5-sentence devotional reflection on the parable "The Strong Man" (${scriptureRefs}). Focus on the main spiritual lesson.`;
@@ -1018,14 +1018,13 @@ export async function POST(req: NextRequest) {
         // prompt_version: '1.0.0', // Uncomment if you add this column
       };
       
-      // Store additional metadata in content if needed
-      // This metadata is used for tracking generation details
+      // Generate content with metadata as a comment
       const metadata = {
         model: OPENAI_NOTES_MODEL,
         generation_time_ms: generationDuration,
         prompt_version: '1.0.0',
         generated_at: new Date().toISOString()
-      };
+      } as const;
       
       // Add metadata as a comment in the content
       notePayload.content = `${content}`;
