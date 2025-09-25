@@ -10,13 +10,15 @@ import { supabase } from '@/lib/supabase-client';
 import { User } from '@supabase/supabase-js';
 import type { Database, ColorAltitude, UserScores } from '@/lib/database.types';
 
-type NoteUpdateResult = {
-  id: string;
-  content: string;
-  upvotes: number;
-  downvotes: number;
-  updated_at: string;
-};
+// Type is used in type definitions but not directly in the code
+// Keeping it for future reference
+// type NoteUpdateResult = {
+//   id: string;
+//   content: string;
+//   upvotes: number;
+//   downvotes: number;
+//   updated_at: string;
+// };
 
 interface Note {
   id: string;
@@ -78,8 +80,8 @@ declare module '@supabase/supabase-js' {
     public: {
       Functions: {
         handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
-          data: any;
-          error: any;
+          data: unknown;
+          error: Error | null;
         }>;
       };
     };
@@ -498,7 +500,7 @@ export default function ParablePage() {
       }
 
       // Start a transaction to ensure both votes are in sync
-      const { data: transactionData, error: transactionError } = await (supabase.rpc as any)('handle_vote_transaction', {
+      const { error: transactionError } = await (supabase as any).rpc('handle_vote_transaction', {
         p_user_id: user.id,
         p_parable_id: parable.id,
         p_altitude: altitudeKey,
