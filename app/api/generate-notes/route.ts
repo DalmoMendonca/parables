@@ -1018,15 +1018,6 @@ export async function POST(req: NextRequest) {
         // prompt_version: '1.0.0', // Uncomment if you add this column
       };
       
-      // Store additional metadata in content if needed
-      // Metadata is prepared but not currently used
-      const _metadata = {
-        model: OPENAI_NOTES_MODEL,
-        generation_time_ms: generationDuration,
-        prompt_version: '1.0.0',
-        generated_at: new Date().toISOString()
-      };
-      
       // Optionally append metadata as a comment in the content
       notePayload.content = `${content}`;
 

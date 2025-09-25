@@ -56,16 +56,17 @@ const altitudeInfo = {
 
 const altitudeEntries = Object.entries(altitudeInfo) as Array<[ColorAltitude, { name: string; color: string }]>;
 
+// Type imports from database schema
 type UsersInsert = Database['public']['Tables']['users']['Insert'];
 type UsersUpdate = Database['public']['Tables']['users']['Update'];
 type UserAltitudeVoteRow = Database['public']['Tables']['user_altitude_votes']['Row'];
-type UserAltitudeVoteInsert = Database['public']['Tables']['user_altitude_votes']['Insert'];
 type NoteVoteRow = Database['public']['Tables']['note_votes']['Row'];
 type ParableNoteRow = Database['public']['Tables']['parable_notes']['Row'];
 type UserParableNoteInsert = Database['public']['Tables']['user_parable_notes']['Insert'];
 type UserParableVoteInsert = Database['public']['Tables']['user_parable_votes']['Insert'];
 
 // Extend the Database type to include our RPC function
+// This type is used for documentation and future type safety
 type HandleVoteTransactionParams = {
   p_user_id: string;
   p_parable_id: string;
@@ -500,7 +501,7 @@ export default function ParablePage() {
       }
 
       // Start a transaction to ensure both votes are in sync
-      const { error: transactionError } = await (supabase as any).rpc('handle_vote_transaction', {
+      const { error: transactionError } = await (supabase.rpc as any)('handle_vote_transaction', {
         p_user_id: user.id,
         p_parable_id: parable.id,
         p_altitude: altitudeKey,
