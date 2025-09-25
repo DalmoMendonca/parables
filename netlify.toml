@@ -1,17 +1,10 @@
 [build]
   command = "npm run build"
-  publish = ".next"
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["@supabase/supabase-js", "openai"]
-  included_files = ["node_modules/.pnpm/**"]
-
 [functions."api-generate-notes"]
-  max_duration = 30
+  timeout = 30
 
 # Environment variables (set in Netlify UI)
 [build.environment]
