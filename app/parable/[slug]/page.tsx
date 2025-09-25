@@ -501,7 +501,9 @@ export default function ParablePage() {
       }
 
       // Start a transaction to ensure both votes are in sync
-      const { error: transactionError } = await (supabase.rpc as any)('handle_vote_transaction', {
+      // Using type assertion to handle the RPC call
+      type RpcFunction = (fn: string, params: HandleVoteTransactionParams) => Promise<{ error: Error | null }>;
+      const { error: transactionError } = await (supabase.rpc as unknown as RpcFunction)('handle_vote_transaction', {
         p_user_id: user.id,
         p_parable_id: parable.id,
         p_altitude: altitudeKey,
