@@ -1,7 +1,21 @@
 [build]
   command = "npm run build"
-  publish = ".next"
-  functions = ".next/serverless/functions"
+  publish = "out"
+  functions = "functions"  # If you're using API routes
+
+[build.environment]
+  NODE_VERSION = "18"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Required for Next.js static exports
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirects for SPA - using array syntax
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 [functions]
   directory = "app/api"  # Directory where your API routes are located
