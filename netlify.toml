@@ -2,17 +2,23 @@
   command = "npm run build"
   publish = ".next"
 
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js", "openai"]
+  included_files = ["node_modules/.pnpm/**"]
+
+[functions."api-generate-notes"]
+  max_duration = 30
+
+# Environment variables (set in Netlify UI)
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_VERSION = "18"
 
-# Redirects for static export
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Headers for security
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]

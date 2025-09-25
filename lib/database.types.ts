@@ -1,4 +1,4 @@
-﻿export interface Database {
+export interface Database {
   public: {
     Tables: {
       users: {
@@ -189,7 +189,19 @@
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      handle_vote_transaction: {
+        Args: {
+          p_user_id: string;
+          p_parable_id: string;
+          p_altitude: 'magenta' | 'red' | 'amber' | 'orange' | 'green' | 'teal' | 'turquoise';
+          p_note_id: string;
+          p_vote_type: 'upvote' | 'downvote' | null;
+          p_current_vote: 'upvote' | 'downvote' | null;
+        };
+        Returns: unknown;
+      };
+    };
     Enums: Record<string, never>;
   };
 }
@@ -205,4 +217,5 @@ export interface UserScores {
   teal: number;
   turquoise: number;
 }
+
 

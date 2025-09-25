@@ -10,16 +10,6 @@ import { supabase } from '@/lib/supabase-client';
 import { User } from '@supabase/supabase-js';
 import type { Database, ColorAltitude, UserScores } from '@/lib/database.types';
 
-// Type is used in type definitions but not directly in the code
-// Keeping it for future reference
-// type NoteUpdateResult = {
-//   id: string;
-//   content: string;
-//   upvotes: number;
-//   downvotes: number;
-//   updated_at: string;
-// };
-
 interface Note {
   id: string;
   altitude: ColorAltitude;
@@ -56,7 +46,6 @@ const altitudeInfo = {
 
 const altitudeEntries = Object.entries(altitudeInfo) as Array<[ColorAltitude, { name: string; color: string }]>;
 
-// Type imports from database schema
 type UsersInsert = Database['public']['Tables']['users']['Insert'];
 type UsersUpdate = Database['public']['Tables']['users']['Update'];
 type UserAltitudeVoteRow = Database['public']['Tables']['user_altitude_votes']['Row'];
@@ -65,29 +54,15 @@ type ParableNoteRow = Database['public']['Tables']['parable_notes']['Row'];
 type UserParableNoteInsert = Database['public']['Tables']['user_parable_notes']['Insert'];
 type UserParableVoteInsert = Database['public']['Tables']['user_parable_votes']['Insert'];
 
-// Extend the Database type to include our RPC function
-// This type is used for documentation and future type safety
+// Parameters expected by the handle_vote_transaction RPC
 type HandleVoteTransactionParams = {
   p_user_id: string;
   p_parable_id: string;
-  p_altitude: string;
+  p_altitude: ColorAltitude;
   p_note_id: string;
   p_vote_type: 'upvote' | 'downvote' | null;
   p_current_vote: 'upvote' | 'downvote' | null;
 };
-
-declare module '@supabase/supabase-js' {
-  interface Database {
-    public: {
-      Functions: {
-        handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
-          data: unknown;
-          error: Error | null;
-        }>;
-      };
-    };
-  }
-}
 
 export default function ParablePage() {
   const params = useParams();
@@ -501,16 +476,16 @@ export default function ParablePage() {
       }
 
       // Start a transaction to ensure both votes are in sync
-      // Using type assertion to handle the RPC call
-      type RpcFunction = (fn: string, params: HandleVoteTransactionParams) => Promise<{ error: Error | null }>;
-      const { error: transactionError } = await (supabase.rpc as unknown as RpcFunction)('handle_vote_transaction', {
+      const transactionInput: HandleVoteTransactionParams = {
         p_user_id: user.id,
         p_parable_id: parable.id,
         p_altitude: altitudeKey,
         p_note_id: noteData.id,
         p_vote_type: newVoteType,
         p_current_vote: currentVote || null
-      });
+      };
+
+      const { error: transactionError } = await supabase.rpc('handle_vote_transaction', transactionInput);
 
       if (transactionError) {
         console.error('Error in vote transaction:', transactionError);
@@ -708,9 +683,9 @@ export default function ParablePage() {
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 sm:p-10 border-l-4 sm:border-l-8 border-blue-500 mb-4">
                 <div className="mb-4 flex flex-col gap-1 text-blue-700 sm:flex-row sm:items-center sm:gap-2">
                   <span className="font-bold capitalize text-lg">{selectedGospel}</span>
-                  <span className="hidden text-blue-500 sm:inline">•</span>
+                  <span className="hidden text-blue-500 sm:inline">�</span>
                   <span className="font-medium">{parable.gospels[selectedGospel as keyof typeof parable.gospels]}</span>
-                  <span className="hidden text-blue-500 sm:inline">•</span>
+                  <span className="hidden text-blue-500 sm:inline">�</span>
                   <span className="font-medium">{selectedVersion}</span>
                 </div>
                 <blockquote className="text-2xl leading-relaxed text-gray-800 font-serif italic">
@@ -1050,7 +1025,7 @@ export default function ParablePage() {
                       <div key={comment.id} className="bg-white/50 rounded-xl p-6 border border-gray-200">
                         <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
                           <span className="font-medium">{new Date(comment.created_at).toLocaleDateString()}</span>
-                          <span>â€¢</span>
+                          <span>Ã¢â‚¬Â¢</span>
                           <span>Color Profile: {JSON.stringify(JSON.parse(comment.user_scores_snapshot))}</span>
                         </div>
                         <p className="text-gray-700 font-serif text-lg leading-relaxed">{comment.content}</p>
