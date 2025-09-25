@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { parables } from '@/data/parables';
 
 const altitudeOrder = ['magenta', 'red', 'amber', 'orange', 'green', 'teal', 'turquoise'] as const;
-type AltitudeKey = typeof altitudeOrder[number];
 
 export default function AdminPage() {
   const [generating, setGenerating] = useState(false);

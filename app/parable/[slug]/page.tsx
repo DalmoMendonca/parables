@@ -1,14 +1,22 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { MessageCircle, Lock, BookOpen, ThumbsUp, ThumbsDown, UserCircle, Users, ArrowLeft, Loader2 } from 'lucide-react';
+import { MessageCircle, Lock, BookOpen, ThumbsUp, ThumbsDown, UserCircle, Users, ArrowLeft, Loader2, Edit, Save, X } from 'lucide-react';
 import { parables } from '@/data/parables';
 import { supabase } from '@/lib/supabase-client';
 import { User } from '@supabase/supabase-js';
 import type { Database, ColorAltitude, UserScores } from '@/lib/database.types';
+
+type NoteUpdateResult = {
+  id: string;
+  content: string;
+  upvotes: number;
+  downvotes: number;
+  updated_at: string;
+};
 
 interface Note {
   id: string;
@@ -55,6 +63,29 @@ type ParableNoteRow = Database['public']['Tables']['parable_notes']['Row'];
 type UserParableNoteInsert = Database['public']['Tables']['user_parable_notes']['Insert'];
 type UserParableVoteInsert = Database['public']['Tables']['user_parable_votes']['Insert'];
 
+// Extend the Database type to include our RPC function
+type HandleVoteTransactionParams = {
+  p_user_id: string;
+  p_parable_id: string;
+  p_altitude: string;
+  p_note_id: string;
+  p_vote_type: 'upvote' | 'downvote' | null;
+  p_current_vote: 'upvote' | 'downvote' | null;
+};
+
+declare module '@supabase/supabase-js' {
+  interface Database {
+    public: {
+      Functions: {
+        handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
+          data: any;
+          error: any;
+        }>;
+      };
+    };
+  }
+}
+
 export default function ParablePage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -73,6 +104,8 @@ export default function ParablePage() {
   const [noteStatus, setNoteStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [noteError, setNoteError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editedNoteContent, setEditedNoteContent] = useState('');
 
   const parable = parables.find(p => p.slug === slug);
   const comments: ParableComment[] = [];
@@ -355,6 +388,41 @@ export default function ParablePage() {
       },
     });
   };
+  const handleSaveNote = async (noteId: string) => {
+    if (!user || !parable) return;
+    
+    try {
+      // Only update the content, don't touch the vote counts
+      const { error } = await supabase
+        .from('parable_notes')
+        .update({ content: editedNoteContent })
+        .eq('id', noteId);
+      
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+      
+      // Update local state
+      setNotes(notes.map(note => 
+        note.id === noteId 
+          ? { ...note, content: editedNoteContent } 
+          : note
+      ));
+      
+      setEditingNoteId(null);
+    } catch (error) {
+      console.error('Error updating note:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+    }
+  };
+
   const handleSavePersonalNote = async () => {
     if (!user || !parable) {
       return;
@@ -416,44 +484,35 @@ export default function ParablePage() {
     }
 
     try {
+      // Find the note ID for this altitude
+      const { data: noteData, error: noteError } = await supabase
+        .from('parable_notes')
+        .select('id')
+        .eq('parable_id', parable.id)
+        .eq('altitude', altitudeKey)
+        .single();
 
-      // Update the vote in database
-      if (newVoteType === null) {
-        // Remove the vote
-        const { error: deleteError } = await supabase
-          .from('user_altitude_votes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('parable_id', parable.id)
-          .eq('altitude', altitudeKey);
-
-        if (deleteError) {
-          console.error('Error deleting altitude vote:', deleteError);
-          return;
-        }
-        console.log(`Removed vote for ${altitudeKey}`);
-      } else {
-        // Store or update the vote
-        const voteTypeToSave = newVoteType as 'upvote' | 'downvote';
-        const altitudeVotePayload: UserAltitudeVoteInsert = {
-          user_id: user.id,
-          parable_id: parable.id,
-          altitude: altitudeKey,
-          vote_type: voteTypeToSave,
-        };
-
-        const { error: upsertError } = await supabase
-          .from('user_altitude_votes')
-          .upsert(altitudeVotePayload, {
-            onConflict: 'user_id,parable_id,altitude'
-          });
-
-        if (upsertError) {
-          console.error('Error storing altitude vote:', upsertError);
-          return;
-        }
-        console.log(`Stored ${newVoteType} vote for ${altitudeKey}`);
+      if (noteError) {
+        console.error('Error finding note:', noteError);
+        return;
       }
+
+      // Start a transaction to ensure both votes are in sync
+      const { data: transactionData, error: transactionError } = await (supabase.rpc as any)('handle_vote_transaction', {
+        p_user_id: user.id,
+        p_parable_id: parable.id,
+        p_altitude: altitudeKey,
+        p_note_id: noteData.id,
+        p_vote_type: newVoteType,
+        p_current_vote: currentVote || null
+      });
+
+      if (transactionError) {
+        console.error('Error in vote transaction:', transactionError);
+        return;
+      }
+
+      console.log(`Vote transaction completed for ${altitudeKey}`);
 
       // Update local vote state
       const newVotes = { ...userVotes };
@@ -786,9 +845,49 @@ export default function ParablePage() {
                       )}
                     </div>
 
-                    <p className="text-gray-700 leading-relaxed font-serif text-lg">
-                      {content}
-                    </p>
+                    {editingNoteId === note?.id ? (
+                      <div className="space-y-3">
+                        <textarea
+                          value={editedNoteContent}
+                          onChange={(e) => setEditedNoteContent(e.target.value)}
+                          className="w-full min-h-[150px] rounded-lg border border-gray-300 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveNote(note.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                          >
+                            <Save size={14} />
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingNoteId(null)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                          >
+                            <X size={14} />
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="group relative">
+                        <p className="text-gray-700 leading-relaxed font-serif text-lg">
+                          {content}
+                        </p>
+                        {user?.email === 'dalmomendonca@gmail.com' && note && (
+                          <button
+                            onClick={() => {
+                              setEditingNoteId(note.id);
+                              setEditedNoteContent(note.content);
+                            }}
+                            className="absolute -right-2 -top-2 p-1.5 text-gray-400 bg-white rounded-full shadow-sm border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50 hover:text-purple-600"
+                            title="Edit note"
+                          >
+                            <Edit size={16} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

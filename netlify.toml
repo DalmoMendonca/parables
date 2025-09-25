@@ -3,17 +3,13 @@
   publish = ".next"
   functions = ".next/serverless/functions"
 
-[functions]
-  # Set the default timeout to 10 seconds (maximum for standard plan)
-  node_bundler = "esbuild"
-  external_node_modules = ["@supabase/supabase-js", "openai"]
-
-# Increase the function timeout to the maximum allowed (10 seconds for standard plan)
 [[functions]]
   function = "api/generate-notes"
   node_bundler = "esbuild"
   external_node_modules = ["@supabase/supabase-js", "openai"]
-  max_duration = 10  # Maximum allowed for standard plan (in seconds)
+  max_duration = 30  # Increased to 30 seconds to match industry standard for AI API calls
+  # Default settings for all functions
+  included_files = ["node_modules/.pnpm/**"]
 
 # Environment variables (these should be set in Netlify UI)
 [build.environment]

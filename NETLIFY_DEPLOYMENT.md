@@ -28,6 +28,12 @@ This guide will help you deploy and configure the Parables app on Netlify.
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    OPENAI_API_KEY=your_openai_api_key
+   # Optional overrides to stay within Netlify function limits
+   OPENAI_NOTES_MODEL=gpt-5-nano
+   OPENAI_NOTES_MAX_TOKENS=500
+   OPENAI_NOTES_TIMEOUT_MS=8500
+   OPENAI_NOTES_MAX_ATTEMPTS=3
+   OPENAI_NOTES_TEMPERATURE=0.7
    ```
 
 4. **Deploy site**
@@ -43,6 +49,8 @@ If you encounter 504 errors when generating notes:
 1. The app is now designed to process one altitude at a time to avoid timeouts
 2. The function timeout is set to the maximum allowed (10 seconds for standard Netlify plans)
 3. If you're still experiencing timeouts:
+   - The API defaults to 'gpt-5-nano' with a conservative token budget; adjust the OPENAI_NOTES_* variables if you need different settings
+   - When running on Netlify the function automatically uses an ~8.5s OpenAI timeout; locally it waits up to 60s unless you override it
    - Upgrade to Netlify Pro or Enterprise for longer timeouts (up to 28 seconds)
    - Consider using a background function or queue system for longer operations
    - Check the function logs in the Netlify dashboard for specific errors

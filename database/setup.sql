@@ -81,7 +81,6 @@ ALTER TABLE user_parable_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_altitude_votes ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
-CREATE POLICY "Users can view their own data" ON users
   FOR ALL USING (auth.uid() = id);
 
 CREATE POLICY "Anyone can view parable notes" ON parable_notes
@@ -90,11 +89,14 @@ CREATE POLICY "Anyone can view parable notes" ON parable_notes
 CREATE POLICY "Only authenticated users can insert parable notes" ON parable_notes
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Users can manage their own votes" ON note_votes
-  FOR ALL USING (auth.uid() = user_id);
+-- Allow admin to update notes
+CREATE POLICY "Admin can update parable notes" ON parable_notes
+  FOR UPDATE USING (true) WITH CHECK (auth.jwt() ->> 'email' = 'dalmomendonca@gmail.com');
 
-CREATE POLICY "Anyone can view comments" ON comments
-  FOR SELECT USING (true);
+-- Grant necessary permissions to the function
+GRANT EXECUTE ON FUNCTION update_note_content(UUID, TEXT) TO authenticated;
+
+CREATE POLICY "Users can manage their own votes" ON note_vote
 
 CREATE POLICY "Users can insert their own comments" ON comments
   FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -144,6 +146,74 @@ BEGIN
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Create function to handle vote transactions
+CREATE OR REPLACE FUNCTION handle_vote_transaction(
+  p_user_id UUID,
+  p_parable_id TEXT,
+  p_altitude TEXT,
+  p_note_id UUID,
+  p_vote_type TEXT,
+  p_current_vote TEXT
+) RETURNS JSON AS $$
+DECLARE
+  result JSON;
+BEGIN
+  -- Start a transaction
+  BEGIN
+    -- First, handle the altitude vote
+    IF p_vote_type IS NULL THEN
+      -- Remove the vote
+      DELETE FROM user_altitude_votes
+      WHERE user_id = p_user_id
+        AND parable_id = p_parable_id
+        AND altitude = p_altitude;
+
+      -- Also remove from note_votes
+      DELETE FROM note_votes
+      WHERE user_id = p_user_id
+        AND note_id = p_note_id;
+    ELSE
+      -- Upsert the altitude vote
+      INSERT INTO user_altitude_votes (user_id, parable_id, altitude, vote_type)
+      VALUES (p_user_id, p_parable_id, p_altitude, p_vote_type::TEXT)
+      ON CONFLICT (user_id, parable_id, altitude)
+      DO UPDATE SET vote_type = EXCLUDED.vote_type;
+
+      -- Upsert the note vote (this will trigger the update_note_vote_counts function)
+      INSERT INTO note_votes (user_id, note_id, vote_type)
+      VALUES (p_user_id, p_note_id, p_vote_type::TEXT)
+      ON CONFLICT (user_id, note_id)
+      DO UPDATE SET vote_type = EXCLUDED.vote_type;
+    END IF;
+
+    -- Return success
+    result := json_build_object('status', 'success');
+    RETURN result;
+  EXCEPTION WHEN OTHERS THEN
+    -- Return error details
+    result := json_build_object(
+      'status', 'error',
+      'message', SQLERRM,
+      'detail', SQLSTATE
+    );
+    RETURN result;
+  END;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create function to safely update note content
+CREATE OR REPLACE FUNCTION update_note_content(note_id UUID, new_content TEXT)
+RETURNS SETOF parable_notes AS $$
+BEGIN
+  RETURN QUERY 
+  UPDATE parable_notes 
+  SET content = new_content,
+      updated_at = NOW()
+  WHERE id = note_id
+  RETURNING *;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create triggers
 CREATE TRIGGER note_vote_counts_trigger

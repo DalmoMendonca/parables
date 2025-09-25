@@ -22,8 +22,8 @@ A web application that helps people explore the 37 parables of Jesus through the
 
 - **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS, Framer Motion
 - **Backend**: Supabase (PostgreSQL, Authentication, Real-time)
-- **AI**: OpenAI GPT-4 for generating interpretations
-- **Hosting**: Vercel (free tier)
+- **AI**: OpenAI gpt-5-nano for generating initial interpretations
+- **Hosting**: Netlify (free tier)
 
 ## Setup Instructions
 
@@ -67,11 +67,11 @@ The app includes one sample parable (The Sower). To generate AI interpretations:
 2. Make a POST request to `/api/generate-notes` with `{ "parableId": "1" }`
 3. This will generate 7 interpretations using GPT-4
 
-### 6. Deploy to Vercel
+### 6. Deploy to Netlify
 
 1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Add your environment variables in Vercel dashboard
+2. Connect your repository to Netlify
+3. Add your environment variables in Netlify dashboard
 4. Deploy!
 
 ## Adding More Parables
