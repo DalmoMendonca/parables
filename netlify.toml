@@ -3,7 +3,7 @@
   publish = ".next"
   functions = ".next/serverless/functions"
 
-[[functions]]
+[functions]
   function = "api/generate-notes"
   node_bundler = "esbuild"
   external_node_modules = ["@supabase/supabase-js", "openai"]
@@ -17,13 +17,13 @@
   NODE_VERSION = "18"
 
 # Redirects for SPA
-[[redirects]]
+[redirects]
   from = "/*"
   to = "/index.html"
   status = 200
 
 # Headers for security
-[[headers]]
+[headers]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
