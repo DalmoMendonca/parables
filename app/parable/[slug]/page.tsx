@@ -683,9 +683,9 @@ export default function ParablePage() {
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 sm:p-10 border-l-4 sm:border-l-8 border-blue-500 mb-4">
                 <div className="mb-4 flex flex-col gap-1 text-blue-700 sm:flex-row sm:items-center sm:gap-2">
                   <span className="font-bold capitalize text-lg">{selectedGospel}</span>
-                  <span className="hidden text-blue-500 sm:inline">�</span>
+                  <span className="hidden text-blue-500 sm:inline">&bull;</span>
                   <span className="font-medium">{parable.gospels[selectedGospel as keyof typeof parable.gospels]}</span>
-                  <span className="hidden text-blue-500 sm:inline">�</span>
+                  <span className="hidden text-blue-500 sm:inline">&bull;</span>
                   <span className="font-medium">{selectedVersion}</span>
                 </div>
                 <blockquote className="text-2xl leading-relaxed text-gray-800 font-serif italic">
@@ -1025,7 +1025,7 @@ export default function ParablePage() {
                       <div key={comment.id} className="bg-white/50 rounded-xl p-6 border border-gray-200">
                         <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
                           <span className="font-medium">{new Date(comment.created_at).toLocaleDateString()}</span>
-                          <span>Ã¢â‚¬Â¢</span>
+                          <span>&bull;</span>
                           <span>Color Profile: {JSON.stringify(JSON.parse(comment.user_scores_snapshot))}</span>
                         </div>
                         <p className="text-gray-700 font-serif text-lg leading-relaxed">{comment.content}</p>
