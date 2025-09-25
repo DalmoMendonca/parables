@@ -1,4 +1,4 @@
-﻿[build]
+[build]
   command = "npm run build"
 
 [[plugins]]
@@ -7,12 +7,10 @@
 [functions."api-generate-notes"]
   timeout = 30
 
-# Environment variables (set in Netlify UI)
 [build.environment]
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_VERSION = "18"
 
-# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
