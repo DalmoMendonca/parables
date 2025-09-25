@@ -78,8 +78,18 @@ declare module '@supabase/supabase-js' {
     public: {
       Functions: {
         handle_vote_transaction: (params: HandleVoteTransactionParams) => Promise<{
-          data: any;
-          error: any;
+          data: {
+            success: boolean;
+            message?: string;
+            user_scores?: UserScores;
+            note?: NoteUpdateResult;
+          };
+          error: {
+            message: string;
+            details?: string;
+            hint?: string;
+            code?: string;
+          } | null;
         }>;
       };
     };

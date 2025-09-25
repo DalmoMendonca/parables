@@ -590,7 +590,7 @@ async function requestOpenAIContent({
             attempt,
             isFallback: true
           });
-        } catch (retryError) {
+        } catch (error) {
           // If that fails, try with a simplified prompt
           console.log(`[${requestId}] Original prompt failed, trying simplified prompt...`);
           const simplifiedPrompt = `Write a 5-sentence devotional reflection on the parable "The Strong Man" (${scriptureRefs}). Focus on the main spiritual lesson.`;
@@ -1019,6 +1019,7 @@ export async function POST(req: NextRequest) {
       };
       
       // Store additional metadata in content if needed
+      // This metadata is used for tracking generation details
       const metadata = {
         model: OPENAI_NOTES_MODEL,
         generation_time_ms: generationDuration,
@@ -1026,9 +1027,10 @@ export async function POST(req: NextRequest) {
         generated_at: new Date().toISOString()
       };
       
-      // Optionally append metadata as a comment in the content
+      // Add metadata as a comment in the content
       notePayload.content = `${content}`;
 
+// Store the result to potentially use it later
       const { data, error: dbError } = await supabaseAdmin
         .from('parable_notes')
         .upsert(notePayload, { onConflict: 'parable_id,altitude' })
