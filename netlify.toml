@@ -6,7 +6,11 @@
   NEXT_TELEMETRY_DISABLED = "1"
   NODE_VERSION = "18"
 
-# Redirects for SPA - exclude static assets and API routes
+# Server-side rendered Next.js configuration
+[functions]
+  directory = ".next/serverless/functions"
+
+# Redirects for SSR Next.js
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
@@ -18,8 +22,13 @@
   status = 200
 
 [[redirects]]
+  from = "/_next/data/*"
+  to = "/_next/data/:splat"
+  status = 200
+
+[[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/.netlify/functions/next"
   status = 200
 
 # Headers for security
