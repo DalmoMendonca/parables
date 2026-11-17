@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import templeModelControl from "../../../temple-model-control.cjs";templeModelControl.configure({ appId: "a74967f5b35516f3750c100b25f672bb" });import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import { parables } from '@/data/parables';
@@ -19,7 +19,7 @@ const supabaseAdmin = createClient<Database>(
 );
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 const OPENAI_NOTES_MODEL = process.env.OPENAI_NOTES_MODEL?.trim() || 'gpt-5-nano';
@@ -30,9 +30,9 @@ const OPENAI_TEMPERATURE = Number.isFinite(parsedTemperature) && parsedTemperatu
 const parsedTimeoutMs = Number.parseInt(process.env.OPENAI_NOTES_TIMEOUT_MS ?? '', 10);
 const NETLIFY_TIMEOUT_DEFAULT_MS = 8500;
 const LOCAL_TIMEOUT_DEFAULT_MS = 60000;
-const OPENAI_TIMEOUT_MS = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0
-  ? parsedTimeoutMs
-  : process.env.NETLIFY ? NETLIFY_TIMEOUT_DEFAULT_MS : LOCAL_TIMEOUT_DEFAULT_MS;
+const OPENAI_TIMEOUT_MS = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ?
+parsedTimeoutMs :
+process.env.NETLIFY ? NETLIFY_TIMEOUT_DEFAULT_MS : LOCAL_TIMEOUT_DEFAULT_MS;
 const parsedMaxAttempts = Number.parseInt(process.env.OPENAI_NOTES_MAX_ATTEMPTS ?? '', 10);
 const OPENAI_MAX_ATTEMPTS = Number.isFinite(parsedMaxAttempts) && parsedMaxAttempts > 0 ? parsedMaxAttempts : 3;
 const RESPONSES_MODEL_PREFIXES = ['gpt-5', 'gpt-4.1', 'o4'];
@@ -81,7 +81,7 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "Blessed Jesus," "Holy Spirit," "divine power"
 - Speaks with deep emotional connection and personal testimony
 - Simple but profound faith expressions`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Sister Ruth's perspective. Use language appropriate for her developmental level while keeping it accessible to high school readers. Embody her worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show her wonder at God's miraculous power and her personal relationship with Jesus.`,
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Sister Ruth's perspective. Use language appropriate for her developmental level while keeping it accessible to high school readers. Embody her worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show her wonder at God's miraculous power and her personal relationship with Jesus.`
   },
   red: {
     heading: '## 2. RED/WARRIOR - Bryce Powell',
@@ -113,7 +113,7 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "going hard for Christ," "spiritual warfare," "battle against evil"
 - Speaks with conviction and righteous anger
 - Direct, confrontational style with clear moral boundaries`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Bryce's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his warrior mentality and literal interpretation of spiritual warfare.`,
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Bryce's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his warrior mentality and literal interpretation of spiritual warfare.`
   },
   amber: {
     heading: '## 3. AMBER/TRADITIONAL - Rev. Jerry Johnson',
@@ -145,7 +145,7 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "inerrant Word," "divine institution," "sacred tradition"
 - Speaks with authority of established church teaching
 - Measured, pastoral tone with emphasis on moral order`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Rev. Johnson's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his commitment to traditional interpretation and established doctrine.`,
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Rev. Johnson's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his commitment to traditional interpretation and established doctrine.`
   },
   orange: {
     heading: '## 4. ORANGE/RATIONAL - Dr. Raymond Moore',
@@ -177,7 +177,7 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "historical-critical method," "academic consensus," "evolutionary psychology"
 - Speaks with intellectual curiosity and scientific precision
 - Nuanced, complex understanding that embraces paradox`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Dr. Moore's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his scholarly approach and integration of faith with reason.`,
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Dr. Moore's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his scholarly approach and integration of faith with reason.`
   },
   green: {
     heading: '## 5. GREEN/PLURALISTIC - Parker',
@@ -209,7 +209,7 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "Christ consciousness," "beloved community," "prophetic critique"
 - Speaks with passion for marginalized voices and systemic change
 - Fluid, evolving language that resists rigid categories`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Parker's perspective. Use language appropriate for their developmental level while keeping it accessible to high school readers. Embody their worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show their commitment to inclusion and social justice interpretation.`,
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Parker's perspective. Use language appropriate for their developmental level while keeping it accessible to high school readers. Embody their worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show their commitment to inclusion and social justice interpretation.`
   },
   teal: {
     heading: '## 6. TEAL/INTEGRAL - Kenny Smith',
@@ -243,7 +243,7 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "transcend and include," "holistic integration," "omega point"
 - Speaks with wisdom that honors all perspectives while maintaining discernment
 - Complex, nuanced understanding that holds paradox gracefully`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Kenny's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his integrative approach that honors all stages while pointing toward greater wholeness.`,
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Kenny's perspective. Use language appropriate for his developmental level while keeping it accessible to high school readers. Embody his worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show his integrative approach that honors all stages while pointing toward greater wholeness.`
   },
   turquoise: {
     heading: '## 7. TURQUOISE/HOLISTIC - Dr. Andrea Simmons',
@@ -276,8 +276,8 @@ const altitudePromptConfig: Record<AltitudeKey, AltitudePromptConfig> = {
 - Uses terms like "groundless ground," "divine flow," "cosmic unfolding"
 - Speaks from place of profound unity and universal love
 - Transcendent language that points beyond all categories`,
-    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Dr. Simmons' perspective. Use language appropriate for her developmental level while keeping it accessible to high school readers. Embody her worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show her cosmic consciousness and nondual understanding while maintaining connection to Christ as cosmic principle.`,
-  },
+    taskTemplate: `**Task:** Write a devotional bible study journal entry (5-sentence paragraph) responding to the parable "[PARABLE_TITLE]" (found in [SCRIPTURE_REFERENCES]) from Dr. Simmons' perspective. Use language appropriate for her developmental level while keeping it accessible to high school readers. Embody her worldview, thoughts, opinions, biases, blind spots, attachments, and spiritual allergies. Show her cosmic consciousness and nondual understanding while maintaining connection to Christ as cosmic principle.`
+  }
 };
 
 const altitudeOrder: AltitudeKey[] = ['magenta', 'red', 'amber', 'orange', 'green', 'teal', 'turquoise'];
@@ -285,20 +285,20 @@ const altitudeOrder: AltitudeKey[] = ['magenta', 'red', 'amber', 'orange', 'gree
 const systemPrompt = `You are a master developmental psychology and Christian theology analyst. Use the persona briefing, usage notes, and parable context to craft a first-person devotional journal entry that faithfully embodies the specified altitude. Maintain nuance, precision, and developmental integrity in every response.`;
 
 function applyParableContext(template: string, parableTitle: string, scriptureRefs: string) {
-  return template
-    .replace(/\[PARABLE_TITLE\]/g, parableTitle)
-    .replace(/\[SCRIPTURE_REFERENCES\]/g, scriptureRefs || 'scripture reference not available');
+  return template.
+  replace(/\[PARABLE_TITLE\]/g, parableTitle).
+  replace(/\[SCRIPTURE_REFERENCES\]/g, scriptureRefs || 'scripture reference not available');
 }
 
 function buildSharedPromptSection({
   parableTitle,
   scriptureRefs,
-  parableText,
-}: {
-  parableTitle: string;
-  scriptureRefs: string;
-  parableText: string;
-}) {
+  parableText
+
+
+
+
+}: {parableTitle: string;scriptureRefs: string;parableText: string;}) {
   const referenceLine = scriptureRefs || 'scripture reference not available';
   return `You are generating a devotional journal entry (exactly five sentences) written during a deep Bible study session in response to the parable "${parableTitle}" (${referenceLine}). Focus on what your persona uniquely sees in the parable that other personas and levels of development might not see. Your response will be shown in a textbook alongside the responses from other personas in order to show the differences and similarities between interpretations from all levels.
 
@@ -340,24 +340,24 @@ function buildAltitudePrompt({
   parableTitle,
   scriptureRefs,
   sharedPromptSection,
-  priorNotesInstruction,
-}: {
-  altitudeKey: AltitudeKey;
-  parableTitle: string;
-  scriptureRefs: string;
-  sharedPromptSection: string;
-  priorNotesInstruction?: string;
-}) {
+  priorNotesInstruction
+
+
+
+
+
+
+}: {altitudeKey: AltitudeKey;parableTitle: string;scriptureRefs: string;sharedPromptSection: string;priorNotesInstruction?: string;}) {
   const config = altitudePromptConfig[altitudeKey];
   const personaSectionParts = [
-    config.heading,
-    config.overview,
-    config.coreIdentityAndBackground,
-    config.theologicalPerspective,
-    config.developmentalStage,
-    config.voiceAndLanguage,
-    applyParableContext(config.taskTemplate, parableTitle, scriptureRefs),
-  ];
+  config.heading,
+  config.overview,
+  config.coreIdentityAndBackground,
+  config.theologicalPerspective,
+  config.developmentalStage,
+  config.voiceAndLanguage,
+  applyParableContext(config.taskTemplate, parableTitle, scriptureRefs)];
+
 
   if (priorNotesInstruction) {
     personaSectionParts.push(priorNotesInstruction);
@@ -371,87 +371,87 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function isRetryableError(error: unknown) {
   if (!error) return false;
-  
+
   console.error('Error details:', JSON.stringify(error, null, 2));
-  
+
   // Handle Error instances
   if (error instanceof Error) {
     const message = (error.message ?? '').toLowerCase();
     console.log(`Error name: ${error.name}, message: ${message}`);
-    
+
     // Check for timeout errors
-    if (error.name === 'AbortError' || 
-        error.name === 'TimeoutError' || 
-        message.includes('timeout') || 
-        message.includes('timed out') ||
-        message.includes('aborted')) {
+    if (error.name === 'AbortError' ||
+    error.name === 'TimeoutError' ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('aborted')) {
       console.log('Retryable error: Timeout');
       return true;
     }
-    
+
     // Check for network-related errors
     const networkErrors = [
-      'econnreset', 'etimedout', 'econnrefused', 'enotfound', 'epipe', 'ecanceled',
-      'eai_again', 'enetunreach', 'enetreset', 'ehostunreach', 'eproto', 'esockettimedout',
-      'temporarily unavailable', 'rate limit', 'overloaded', 'unreachable', 'connection',
-      'network', 'socket', 'econn', 'eai', 'enet', 'ehost', 'eproto', 'esocket'
-    ];
-    
-    if (networkErrors.some(code => message.includes(code))) {
+    'econnreset', 'etimedout', 'econnrefused', 'enotfound', 'epipe', 'ecanceled',
+    'eai_again', 'enetunreach', 'enetreset', 'ehostunreach', 'eproto', 'esockettimedout',
+    'temporarily unavailable', 'rate limit', 'overloaded', 'unreachable', 'connection',
+    'network', 'socket', 'econn', 'eai', 'enet', 'ehost', 'eproto', 'esocket'];
+
+
+    if (networkErrors.some((code) => message.includes(code))) {
       console.log('Retryable error: Network issue');
       return true;
     }
-    
+
     // Check for HTTP status codes
     const statusCodes = ['502', '503', '504', '429', '5', '4'];
-    const matchedCode = statusCodes.find(code => message.includes(code));
+    const matchedCode = statusCodes.find((code) => message.includes(code));
     if (matchedCode) {
       console.log(`Retryable error: HTTP ${matchedCode}`);
       return true;
     }
-    
+
     // Check for empty responses from OpenAI or content filter issues
     if (message.includes('empty or no content generated by openai') ||
-        message.includes('content filter') ||
-        message.includes('content_policy') ||
-        message.includes('content policy') ||
-        message.includes('safety system')) {
+    message.includes('content filter') ||
+    message.includes('content_policy') ||
+    message.includes('content policy') ||
+    message.includes('safety system')) {
       console.log('Retryable error: Empty or filtered response from OpenAI');
       return true;
     }
   }
-  
+
   // Handle object errors (like Axios errors)
   if (typeof error === 'object' && error !== null) {
     const err = error as Record<string, unknown>;
-    
+
     // Check for status code in error object
     if (typeof err.status === 'number') {
       // Rate limit (429) or server errors (5xx)
-      if (err.status === 429 || (err.status >= 500 && err.status < 600)) {
+      if (err.status === 429 || err.status >= 500 && err.status < 600) {
         console.log(`Retryable error: HTTP ${err.status}`);
         return true;
       }
     }
-    
+
     // Check for error type in OpenAI responses
-    if (typeof err.type === 'string' && 
-        ['tokens', 'server_error', 'rate_limit_exceeded', 'overloaded'].includes(err.type)) {
+    if (typeof err.type === 'string' &&
+    ['tokens', 'server_error', 'rate_limit_exceeded', 'overloaded'].includes(err.type)) {
       console.log(`Retryable error: ${err.type}`);
       return true;
     }
-    
+
     // Check nested error objects
     if (typeof err.error === 'object' && err.error !== null) {
       const nestedError = err.error as Record<string, unknown>;
-      if (typeof nestedError.type === 'string' && 
-          ['tokens', 'server_error', 'rate_limit_exceeded', 'overloaded'].includes(nestedError.type)) {
+      if (typeof nestedError.type === 'string' &&
+      ['tokens', 'server_error', 'rate_limit_exceeded', 'overloaded'].includes(nestedError.type)) {
         console.log(`Retryable error (nested): ${nestedError.type}`);
         return true;
       }
     }
   }
-  
+
   console.log('Non-retryable error');
   return false;
 }
@@ -461,16 +461,16 @@ function extractResponseText(response: unknown): string {
     return '';
   }
 
-  const maybeResponse = response as { output_text?: string; output?: Array<{ type?: string; text?: string }> };
+  const maybeResponse = response as {output_text?: string;output?: Array<{type?: string;text?: string;}>;};
   if (typeof maybeResponse.output_text === 'string') {
     return maybeResponse.output_text.trim();
   }
 
   if (Array.isArray(maybeResponse.output)) {
-    const combined = maybeResponse.output
-      .filter((item) => item?.type === 'output_text')
-      .map((item) => (item?.text ?? '').toString())
-      .join('');
+    const combined = maybeResponse.output.
+    filter((item) => item?.type === 'output_text').
+    map((item) => (item?.text ?? '').toString()).
+    join('');
     return combined.trim();
   }
 
@@ -498,16 +498,16 @@ async function requestOpenAIContent({
 }: RequestOptions): Promise<string> {
   const requestId = Math.random().toString(36).substring(2, 10);
   const startTime = Date.now();
-  
+
   const model = isFallback ? 'gpt-4-turbo' : OPENAI_NOTES_MODEL;
   console.log(`[${requestId}] Starting API request (attempt ${attempt}/${OPENAI_MAX_ATTEMPTS}, model: ${model}${isFallback ? ' [FALLBACK]' : ''})`);
-  
+
   // Log the full prompt for debugging if it's the first attempt
   if (attempt === 1 && !isFallback) {
     console.log(`[${requestId}] Full system prompt (${systemPrompt.length} chars):`, systemPrompt);
     console.log(`[${requestId}] Full user prompt (${userPrompt.length} chars):`, userPrompt);
   }
-  
+
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     console.log(`[${requestId}] Request timed out after ${OPENAI_TIMEOUT_MS}ms`);
@@ -516,66 +516,66 @@ async function requestOpenAIContent({
 
   try {
     const requestStart = Date.now();
-    
+
     if (USES_RESPONSES_API && !isFallback) {
       console.log(`[${requestId}] Using Responses API with model: ${model}`);
-      const response = await openai.responses.create(
+      const response = await templeModelControl.client("app/api/generate-notes/route/responses", openai.responses).create(
         {
           model,
           temperature,
           max_output_tokens: maxTokens,
           input: [
-            { role: 'system', content: [{ type: 'input_text', text: systemPrompt }] },
-            { role: 'user', content: [{ type: 'input_text', text: userPrompt }] },
-          ],
+          { role: 'system', content: [{ type: 'input_text', text: systemPrompt }] },
+          { role: 'user', content: [{ type: 'input_text', text: userPrompt }] }]
+
         },
         { signal: controller.signal, timeout: OPENAI_TIMEOUT_MS }
       );
-      
+
       const duration = Date.now() - requestStart;
       console.log(`[${requestId}] API request completed in ${duration}ms`);
-      
+
       const content = extractResponseText(response);
       if (!content || content.trim().length === 0) {
         throw new Error('Empty response from OpenAI API');
       }
-      
+
       return content;
     } else {
       console.log(`[${requestId}] Using Chat Completions API with model: ${model}`);
-      const response = await openai.chat.completions.create(
+      const response = await templeModelControl.client("app/api/generate-notes/route/chat", openai.chat.completions).create(
         {
           model,
           messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }],
+
           temperature,
-          max_tokens: maxTokens,
+          max_tokens: maxTokens
         },
         { signal: controller.signal, timeout: OPENAI_TIMEOUT_MS }
       );
-      
+
       const duration = Date.now() - requestStart;
       console.log(`[${requestId}] API request completed in ${duration}ms`);
-      
+
       const content = response.choices[0]?.message?.content?.trim() || '';
       if (!content) {
         throw new Error('Empty response from OpenAI API');
       }
-      
+
       return content;
     }
-    
+
   } catch (error) {
     const errorDuration = Date.now() - startTime;
     console.error(`[${requestId}] API request failed after ${errorDuration}ms:`, error);
-    
+
     // If this was a fallback attempt, just rethrow the error
     if (isFallback) {
       throw error;
     }
-    
+
     // Try falling back to chat completions if we were using responses API
     if (USES_RESPONSES_API && !isFallback) {
       console.log(`[${requestId}] Falling back to Chat Completions API...`);
@@ -595,7 +595,7 @@ async function requestOpenAIContent({
           // If that fails, try with a simplified prompt
           console.log(`[${requestId}] Original prompt failed, trying simplified prompt...`);
           const simplifiedPrompt = `Write a 5-sentence devotional reflection on the parable "The Strong Man" (${scriptureRefs}). Focus on the main spiritual lesson.`;
-          
+
           return await requestOpenAIContent({
             systemPrompt: 'You are a helpful Christian devotional writer.',
             userPrompt: simplifiedPrompt,
@@ -610,15 +610,15 @@ async function requestOpenAIContent({
         // Continue with the original error
       }
     }
-    
+
     // Check if this is a retryable error and we have attempts left
     if (isRetryableError(error) && attempt < OPENAI_MAX_ATTEMPTS) {
       const nextAttempt = attempt + 1;
       const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff with max 10s
-      
+
       console.log(`[${requestId}] Retrying in ${backoffMs}ms (attempt ${nextAttempt}/${OPENAI_MAX_ATTEMPTS})`);
-      await new Promise(resolve => setTimeout(resolve, backoffMs));
-      
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+
       return requestOpenAIContent({
         systemPrompt,
         userPrompt,
@@ -628,7 +628,7 @@ async function requestOpenAIContent({
         isFallback
       });
     }
-    
+
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -638,12 +638,12 @@ async function requestOpenAIContent({
 async function generateNoteContent({
   altitude,
   systemPrompt,
-  userPrompt,
-}: {
-  altitude: AltitudeKey;
-  systemPrompt: string;
-  userPrompt: string;
-}): Promise<string> {
+  userPrompt
+
+
+
+
+}: {altitude: AltitudeKey;systemPrompt: string;userPrompt: string;}): Promise<string> {
   const requestId = Math.random().toString(36).substring(2, 8);
   let lastError: unknown;
   let lastStatusCode: number | undefined;
@@ -651,62 +651,62 @@ async function generateNoteContent({
   let lastResponse: unknown;
 
   console.log(`[${requestId}] Starting note generation for altitude: ${altitude}`);
-  
+
   for (let attempt = 1; attempt <= OPENAI_MAX_ATTEMPTS; attempt++) {
     // Reduce token count on subsequent attempts to increase success chance
     const tokensForAttempt = Math.max(
       Math.floor(OPENAI_MAX_TOKENS * (1 - (attempt - 1) * 0.15)),
       150
     );
-    
+
     // Slightly increase temperature on retries to get different responses
     const temperatureForAttempt = Math.min(
       OPENAI_TEMPERATURE + (attempt - 1) * 0.1,
       1.0
     );
-    
+
     const attemptStartTime = Date.now();
-    
+
     try {
       console.log(
         `[${requestId}] Attempt ${attempt}/${OPENAI_MAX_ATTEMPTS} for ${altitude} ` +
         `(tokens=${tokensForAttempt}, temp=${temperatureForAttempt.toFixed(2)})`
       );
-      
+
       // Log the first 500 chars of the prompt for debugging
       if (attempt === 1) {
         console.log(`[${requestId}] System prompt (first 500 chars): ${systemPrompt.substring(0, 500)}...`);
         console.log(`[${requestId}] User prompt (first 500 chars): ${userPrompt.substring(0, 500)}...`);
       }
-      
+
       // Extract scripture references from the user prompt if possible
       const scriptureRefsMatch = userPrompt.match(/b(?:Matthew|Mark|Luke|John)\s+\d+:\d+(?:-\d+)?(?:\s*,\s*(?:Matthew|Mark|Luke|John)\s+\d+:\d+(?:-\d+)?)*/g);
       const defaultRefs = 'Matthew 12:29, Mark 3:27, Luke 11:21-22';
       const scriptureRefs = scriptureRefsMatch ? scriptureRefsMatch[0] : defaultRefs;
-        
+
       const content = await requestOpenAIContent({
         systemPrompt,
         userPrompt,
         maxTokens: tokensForAttempt,
         temperature: temperatureForAttempt,
         attempt,
-        scriptureRefs,
+        scriptureRefs
       });
 
       const duration = Date.now() - attemptStartTime;
-      
+
       if (!content || content.trim().length === 0) {
         throw new Error('Empty or no content generated by OpenAI');
       }
-      
+
       console.log(`[${requestId}] Successfully generated ${content.length} characters for ${altitude} in ${duration}ms`);
       console.log(`[${requestId}] Response preview: ${content.substring(0, 200)}...`);
       return content;
-      
+
     } catch (error) {
       const errorDuration = Date.now() - attemptStartTime;
       lastError = error;
-      
+
       // Extract error info for logging
       if (error && typeof error === 'object') {
         const err = error as Record<string, unknown>;
@@ -714,60 +714,60 @@ async function generateNoteContent({
         if (typeof err.type === 'string') lastErrorType = err.type;
         if (err.response) lastResponse = err.response;
       }
-      
+
       const isLastAttempt = attempt === OPENAI_MAX_ATTEMPTS;
       const shouldRetry = isRetryableError(error) && !isLastAttempt;
-      
+
       console.error(
-        `[${requestId}] Attempt ${attempt} failed after ${errorDuration}ms` +
-        (lastStatusCode ? ` (status: ${lastStatusCode})` : '') +
-        (lastErrorType ? ` (type: ${lastErrorType})` : '') +
+        `[${requestId}] Attempt ${attempt} failed after ${errorDuration}ms` + (
+        lastStatusCode ? ` (status: ${lastStatusCode})` : '') + (
+        lastErrorType ? ` (type: ${lastErrorType})` : '') +
         `: ${error instanceof Error ? error.message : String(error)}`
       );
-      
+
       // Log response details if available
       if (lastResponse) {
         console.error(`[${requestId}] Response details:`, JSON.stringify(lastResponse, null, 2));
       }
-      
+
       if (!shouldRetry) {
         console.error(`[${requestId}] Not retrying - ${isLastAttempt ? 'max attempts reached' : 'error is not retryable'}`);
         break;
       }
-      
+
       // Exponential backoff with jitter
       const baseDelay = 1000 * Math.pow(2, attempt - 1);
       const jitter = Math.random() * 1000; // Add up to 1s of jitter
       const backoffMs = Math.min(baseDelay + jitter, 10000); // Cap at 10s
-      
+
       console.warn(`[${requestId}] Retrying in ${Math.round(backoffMs)}ms...`);
       await sleep(backoffMs);
     }
   }
 
   // If we get here, all attempts failed
-  const errorMessage = lastError instanceof Error 
-    ? lastError.message 
-    : 'Unknown error generating note content';
-    
+  const errorMessage = lastError instanceof Error ?
+  lastError.message :
+  'Unknown error generating note content';
+
   console.error(`[${requestId}] All attempts failed for ${altitude}: ${errorMessage}`);
-  
+
   // Include more context in the error
   const enhancedError = new Error(`Failed to generate content after ${OPENAI_MAX_ATTEMPTS} attempts: ${errorMessage}`);
   if (lastError instanceof Error) {
     enhancedError.stack = lastError.stack;
   }
-  
+
   throw enhancedError;
 }
 
-export async function POST(req: NextRequest) {
+async function templeOriginalPOST(req: NextRequest) {
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = Date.now();
-  
+
   try {
     console.log(`[${requestId}] Received request to generate notes`);
-    
+
     // Parse and validate request body
     let requestBody;
     try {
@@ -775,13 +775,13 @@ export async function POST(req: NextRequest) {
     } catch (parseError) {
       console.error(`[${requestId}] Failed to parse request body:`, parseError);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Invalid JSON in request body',
           requestId,
           timestamp: new Date().toISOString()
-        }, 
-        { 
+        },
+        {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
@@ -790,20 +790,20 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-    
+
     const { parableId, altitude } = requestBody;
-    
+
     // Validate required fields
     if (!parableId) {
       console.error(`[${requestId}] No parableId provided in request body`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Missing required field: parableId',
           requestId,
           timestamp: new Date().toISOString()
-        }, 
-        { 
+        },
+        {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
@@ -812,17 +812,17 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-    
+
     if (!altitude) {
       console.error(`[${requestId}] No altitude provided in request body`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Missing required field: altitude',
           requestId,
           timestamp: new Date().toISOString()
-        }, 
-        { 
+        },
+        {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
@@ -831,20 +831,20 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-    
+
     // Validate altitude value
     if (!altitudeOrder.includes(altitude as AltitudeKey)) {
       const validAltitudes = altitudeOrder.join(', ');
       console.error(`[${requestId}] Invalid altitude: ${altitude}. Valid values are: ${validAltitudes}`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: `Invalid altitude. Must be one of: ${validAltitudes}`,
           requestId,
           timestamp: new Date().toISOString(),
           validAltitudes: altitudeOrder
-        }, 
-        { 
+        },
+        {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
@@ -853,23 +853,23 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-    
+
     const altitudeKey = altitude as AltitudeKey;
     console.log(`[${requestId}] Processing request for parableId: ${parableId}, altitude: ${altitudeKey}`);
-    
+
     // Find the parable
     const parable = parables.find((p) => p.id === parableId);
     if (!parable) {
       console.error(`[${requestId}] Parable not found: ${parableId}`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Parable not found',
           requestId,
           timestamp: new Date().toISOString(),
           parableId
-        }, 
-        { 
+        },
+        {
           status: 404,
           headers: {
             'Content-Type': 'application/json',
@@ -886,8 +886,8 @@ export async function POST(req: NextRequest) {
     if (!parableText) {
       console.error(`[${requestId}] No parable text found for parable: ${parableId}`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Parable text not available',
           requestId,
           timestamp: new Date().toISOString(),
@@ -902,21 +902,21 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-    
+
     console.log(`[${requestId}] Parable text length: ${parableText.length} characters`);
 
     // Format scripture references
-    const scriptureRefs = Object.entries(parable.gospels)
-      .map(([gospel, reference]) => `${gospel.charAt(0).toUpperCase() + gospel.slice(1)} ${reference}`)
-      .join(', ');
+    const scriptureRefs = Object.entries(parable.gospels).
+    map(([gospel, reference]) => `${gospel.charAt(0).toUpperCase() + gospel.slice(1)} ${reference}`).
+    join(', ');
     console.log(`[${requestId}] Scripture references: ${scriptureRefs}`);
 
     // Validate environment variables
     if (!process.env.OPENAI_API_KEY) {
       console.error(`[${requestId}] OpenAI API key not found`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'OpenAI API key not configured',
           requestId,
           timestamp: new Date().toISOString()
@@ -934,8 +934,8 @@ export async function POST(req: NextRequest) {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error(`[${requestId}] Supabase service role key not found`);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Supabase service role key not configured',
           requestId,
           timestamp: new Date().toISOString(),
@@ -956,17 +956,17 @@ export async function POST(req: NextRequest) {
       const sharedPromptSection = buildSharedPromptSection({
         parableTitle: parable.title,
         scriptureRefs,
-        parableText,
+        parableText
       });
-      
+
       console.log(`[${requestId}] Validating altitude configuration for ${altitude}...`);
       const altitudeKey = altitude as AltitudeKey;
       const altitudeConfig = altitudePromptConfig[altitudeKey];
       if (!altitudeConfig) {
         console.error(`[${requestId}] No prompt configuration found for altitude: ${altitude}`);
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: 'Invalid altitude configuration',
             requestId,
             timestamp: new Date().toISOString(),
@@ -987,16 +987,16 @@ export async function POST(req: NextRequest) {
         altitudeKey,
         parableTitle: parable.title,
         scriptureRefs,
-        sharedPromptSection,
+        sharedPromptSection
       });
 
       console.log(`[${requestId}] Starting note generation...`);
       const generationStartTime = Date.now();
-      
+
       const content = await generateNoteContent({
         altitude: altitudeKey,
         systemPrompt,
-        userPrompt,
+        userPrompt
       });
 
       const generationDuration = Date.now() - generationStartTime;
@@ -1012,20 +1012,20 @@ export async function POST(req: NextRequest) {
         altitude: altitudeKey,
         content,
         upvotes: 0,
-        downvotes: 0,
+        downvotes: 0
         // Only include fields that exist in the database
         // model: OPENAI_NOTES_MODEL, // Uncomment if you add this column
         // generation_time_ms: generationDuration, // Uncomment if you add this column
         // prompt_version: '1.0.0', // Uncomment if you add this column
       };
-      
+
       notePayload.content = content;
 
-      const { data, error: dbError } = await supabaseAdmin
-        .from('parable_notes')
-        .upsert(notePayload, { onConflict: 'parable_id,altitude' })
-        .select()
-        .single();
+      const { data, error: dbError } = await supabaseAdmin.
+      from('parable_notes').
+      upsert(notePayload, { onConflict: 'parable_id,altitude' }).
+      select().
+      single();
 
       if (dbError) {
         console.error(`[${requestId}] Database error:`, dbError);
@@ -1034,9 +1034,9 @@ export async function POST(req: NextRequest) {
 
       const totalDuration = Date.now() - startTime;
       console.log(`[${requestId}] Successfully processed request in ${totalDuration}ms`);
-      
+
       return NextResponse.json(
-        { 
+        {
           success: true,
           data: {
             note: data,
@@ -1063,18 +1063,18 @@ export async function POST(req: NextRequest) {
           }
         }
       );
-      
+
     } catch (error) {
       const errorDuration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorName = error instanceof Error ? error.name : 'Error';
-      
+
       console.error(`[${requestId}] Error after ${errorDuration}ms:`, error);
 
       // Special handling for timeout errors
       if (errorName === 'AbortError' || errorMessage.toLowerCase().includes('timeout')) {
         return NextResponse.json(
-          { 
+          {
             success: false,
             error: 'Request timed out',
             details: 'The operation took too long to complete. Please try again.',
@@ -1096,8 +1096,8 @@ export async function POST(req: NextRequest) {
 
       // General error response
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Failed to generate note',
           details: errorMessage,
           requestId,
@@ -1117,12 +1117,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const errorDuration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     console.error(`[${requestId}] Unhandled error after ${errorDuration}ms:`, error);
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Internal server error',
         details: errorMessage,
         requestId,
@@ -1139,4 +1139,4 @@ export async function POST(req: NextRequest) {
       }
     );
   }
-}
+}export const POST = templeModelControl.wrap(templeModelControl.wrap(templeOriginalPOST));
